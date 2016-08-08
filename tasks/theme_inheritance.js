@@ -16,7 +16,7 @@ module.exports = function(grunt) {
     utils = require("../lib/utils.js"),
     existingThemes = [],
     themesTree = [],
-    foldersToCopy = [{folder:'/assets', ext:'*'}, {folder:'/styles', ext:'tss'}, {folder:'/i18n', ext:'xml'}],
+    foldersToCopy = [{folder:'/assets', ext:'*'}, {folder:'/styles', ext:'tss'}, {folder:'/i18n', ext:'xml'}, {folder:'/platform', ext:'*'}],
     mergedThemeName = 'mergedTheme',
     mergedThemeConfig = {},
     mergedThemePath;
