@@ -8,17 +8,17 @@
 
 'use strict';
 
-module.exports = function(grunt) {
+module.exports = function (grunt) {
     var fs = require("fs"),
-    chalk = require("chalk"),
-    utils = require("../lib/utils.js"),
-    _ = require("underscore");
+        chalk = require("chalk"),
+        utils = require("../lib/utils.js"),
+        _ = require("underscore");
 
-    var _findAndroidNodeByAttribute = function(node){
+    var _findAndroidNodeByAttribute = function (node) {
         return node.hasAttribute('android:name') && node.getAttribute('android:name').indexOf(this.attributeName) !== -1;
     };
 
-    var _updateManifest = function(tiapp, config) {
+    var _updateManifest = function (tiapp, config) {
         if (config.android) {
             var manifests = tiapp.doc.getElementsByTagName('manifest');
             if (manifests.length !== 1) {
@@ -64,12 +64,39 @@ module.exports = function(grunt) {
         }
     };
 
-    grunt.registerTask('update_tiapp', 'Update the tiapp xml according to theme configuration', function() {
+    var _addIosConfigurationSpecificParameters = function(tiappDocumentElement, appId, appName)
+    {
+        var plist = require('plist-native');
+        var slug = require('slug');
+        slug.defaults.mode = 'rfc3986';
+        var DOMParser = require('xmldom').DOMParser;
+
+        var plistXmlNode = tiappDocumentElement
+            .getElementsByTagName('ios')[0]
+            .getElementsByTagName('plist')[0];
+        var iOSConfigurationPlist = plist.parseString(plistXmlNode.toString());
+
+        iOSConfigurationPlist.CFBundleURLTypes = [
+            {
+                CFBundleURLName: appId,
+                CFBundleURLSchemes: [slug(appName)]
+            }
+        ];
+
+        var updatedIosPlistXmlDoc = new DOMParser().parseFromString(plist.buildString(iOSConfigurationPlist), 'text/xml');
+        tiappDocumentElement.replaceChild(updatedIosPlistXmlDoc.documentElement, plistXmlNode);
+    };
+
+    grunt.registerTask('update_tiapp', 'Update the tiapp xml according to theme configuration', function () {
         // read theme's config
         var themeConfig = utils.getThemeConfig(grunt);
+
         if (themeConfig) {
             // load tiapp
             var tiapp = require('tiapp.xml').load('./tiapp.xml');
+
+            _addIosConfigurationSpecificParameters(tiapp.doc.documentElement, tiapp.id, tiapp.name);
+
             for (var setting in themeConfig.settings) {
                 tiapp[setting] = themeConfig.settings[setting];
                 grunt.log.ok('Changing setting ' + chalk.cyan(setting) + ' to ' + chalk.yellow(themeConfig.settings[setting]));
