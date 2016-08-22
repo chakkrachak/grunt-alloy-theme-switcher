@@ -8,50 +8,50 @@
 
 'use strict';
 
-module.exports = function (grunt) {
-    var fs = require("fs"),
-        chalk = require("chalk"),
-        utils = require("../lib/utils.js"),
-        _ = require("underscore");
+module.exports = function(grunt) {
+    var fs = require('fs');
+    var chalk = require('chalk');
+    var utils = require('../lib/utils.js');
+    var _ = require('underscore');
 
-    var _findAndroidNodeByAttribute = function (node) {
+    var _findAndroidNodeByAttribute = function(node) {
         return node.hasAttribute('android:name') && node.getAttribute('android:name').indexOf(this.attributeName) !== -1;
     };
 
-    var _updateManifest = function (tiapp, config) {
+    var _updateManifest = function(tiapp, config) {
         if (config.android) {
             var manifests = tiapp.doc.getElementsByTagName('manifest');
             if (manifests.length !== 1) {
-                console.log(chalk.red("No manifest tag found in your tiapp.xml."));
+                console.log(chalk.red('No manifest tag found in your tiapp.xml.'));
                 return false;
             } else {
                 var manifest = manifests[0];
-                // update versionCode
+                // Update versionCode
                 if (config.android.versionCode) {
                     manifest.setAttribute('android:versionCode', config.android.versionCode);
                     manifest.setAttribute('android:versionName', tiapp.version);
                     console.log(chalk.green('\nandroid:version Code and versionName updated'));
                 }
                 if (config.android.MAPS_V2_API_KEY) {
-                    // update gmaps api key
+                    // Update gmaps api key
                     var metaDatas = manifest.getElementsByTagName('meta-data');
-                    var metaData = _.find(metaDatas, _findAndroidNodeByAttribute, {attributeName: "com.google.android.maps.v2.API_KEY"});
+                    var metaData = _.find(metaDatas, _findAndroidNodeByAttribute, {attributeName: 'com.google.android.maps.v2.API_KEY'});
                     if (metaData) {
                         metaData.setAttribute('android:value', config.android.MAPS_V2_API_KEY);
                         console.log(chalk.green('\ncom.google.android.maps.v2.API_KEY updated'));
                     }
-                    // update app id in permission MAPS_RECEIVE
+                    // Update app id in permission MAPS_RECEIVE
                     var permissions = manifest.getElementsByTagName('permission');
-                    var permission = _.find(permissions, _findAndroidNodeByAttribute, {attributeName: ".permission.MAPS_RECEIVE"});
+                    var permission = _.find(permissions, _findAndroidNodeByAttribute, {attributeName: '.permission.MAPS_RECEIVE'});
                     if (permission) {
                         permission.setAttribute('android:name', tiapp.id + '.permission.MAPS_RECEIVE');
                         console.log(chalk.green('\npermission .permission.MAPS_RECEIVE updated'));
                     }
-                    // update app id in uses-permission MAPS_RECEIVE
-                    var uses_permissions = manifest.getElementsByTagName('uses-permission');
-                    var uses_permission = _.find(uses_permissions, _findAndroidNodeByAttribute, {attributeName: ".permission.MAPS_RECEIVE"});
-                    if (uses_permission) {
-                        uses_permission.setAttribute('android:name', tiapp.id + '.permission.MAPS_RECEIVE');
+                    // Update app id in uses-permission MAPS_RECEIVE
+                    var usesPermissions = manifest.getElementsByTagName('uses-permission');
+                    var usesPermission = _.find(usesPermissions, _findAndroidNodeByAttribute, {attributeName: '.permission.MAPS_RECEIVE'});
+                    if (usesPermission) {
+                        usesPermission.setAttribute('android:name', tiapp.id + '.permission.MAPS_RECEIVE');
                         console.log(chalk.green('\nuses-permission .permission.MAPS_RECEIVE updated'));
                     }
                 }
@@ -59,13 +59,12 @@ module.exports = function (grunt) {
                 return true;
             }
         } else {
-            console.log(chalk.yellow("No android configuration found for " + grunt.option("theme") + "!"));
+            console.log(chalk.yellow('No android configuration found for ' + grunt.option('theme') + '!'));
             return true;
         }
     };
 
-    var _addIosConfigurationSpecificParameters = function(tiappDocumentElement, appId, appName)
-    {
+    var _addIosConfigurationSpecificParameters = function(tiappDocumentElement, appId, appName) {
         var plist = require('plist-native');
         var slug = require('slug');
         slug.defaults.mode = 'rfc3986';
@@ -79,20 +78,20 @@ module.exports = function (grunt) {
         iOSConfigurationPlist.CFBundleURLTypes = [
             {
                 CFBundleURLName: appId,
-                CFBundleURLSchemes: [slug(appName)]
-            }
+                CFBundleURLSchemes: [slug(appName)],
+            },
         ];
 
         var updatedIosPlistXmlDoc = new DOMParser().parseFromString(plist.buildString(iOSConfigurationPlist), 'text/xml');
         tiappDocumentElement.replaceChild(updatedIosPlistXmlDoc.documentElement, plistXmlNode);
     };
 
-    grunt.registerTask('update_tiapp', 'Update the tiapp xml according to theme configuration', function () {
-        // read theme's config
+    grunt.registerTask('update_tiapp', 'Update the tiapp xml according to theme configuration', function() {
+        // Read theme's config
         var themeConfig = utils.getThemeConfig(grunt);
 
         if (themeConfig) {
-            // load tiapp
+            // Load tiapp
             var tiapp = require('tiapp.xml').load('./tiapp.xml');
 
             _addIosConfigurationSpecificParameters(tiapp.doc.documentElement, tiapp.id, tiapp.name);
@@ -102,14 +101,21 @@ module.exports = function (grunt) {
                 grunt.log.ok('Changing setting ' + chalk.cyan(setting) + ' to ' + chalk.yellow(themeConfig.settings[setting]));
             }
             for (var property in themeConfig.properties) {
-                tiapp.setProperty(themeConfig.properties[property].name, themeConfig.properties[property].value, themeConfig.properties[property].type);
-                grunt.log.ok('Set property ' + chalk.cyan(themeConfig.properties[property].name) + ' with value ' + chalk.yellow(themeConfig.properties[property].value));
+                tiapp.setProperty(
+                    themeConfig.properties[property].name,
+                    themeConfig.properties[property].value,
+                    themeConfig.properties[property].type
+                );
+                grunt.log.ok(
+                    'Set property ' + chalk.cyan(themeConfig.properties[property].name) +
+                    ' with value ' + chalk.yellow(themeConfig.properties[property].value)
+                );
             }
             if (_updateManifest(tiapp, themeConfig) || themeConfig.settings.length > 0 || themeConfig.properties.length > 0) {
                 tiapp.write();
                 grunt.log.ok(chalk.green('\nTiApp.xml updated\n'));
             } else {
-                grunt.fail.warn("TiApp.xml not updated.");
+                grunt.fail.warn('TiApp.xml not updated.');
             }
         }
     });
